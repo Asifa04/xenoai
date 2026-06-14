@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import sendRouter from './api/send/routes';
@@ -12,7 +12,9 @@ app.use(cors({ origin: '*' }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 
-app.get('/health', (_, res) => res.json({ status: 'ok', service: 'channel' }));
+app.get('/health', (_: Request, res: Response) =>
+  res.json({ status: 'ok', service: 'channel' })
+);
 
 app.use('/api/send', sendRouter);
 

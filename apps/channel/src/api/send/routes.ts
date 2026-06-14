@@ -1,19 +1,27 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { scheduleLifecycle, SendRequest } from '../../simulator/lifecycle';
 
 const router = Router();
 
 // POST /api/send/single
-router.post('/single', async (req, res) => {
+router.post('/single', async (req: Request, res: Response) => {
   try {
-    const { communicationId, channel, recipient, message, callbackUrl } = req.body as SendRequest;
+    const { communicationId, channel, recipient, message, callbackUrl } =
+      req.body as SendRequest;
 
     if (!communicationId || !channel || !callbackUrl) {
-      return res.status(400).json({ error: 'communicationId, channel, and callbackUrl are required' });
+      return res.status(400).json({
+        error: 'communicationId, channel, and callbackUrl are required',
+      });
     }
 
     await scheduleLifecycle({ communicationId, channel, recipient, message, callbackUrl });
-    res.json({ success: true, communicationId, message: 'Lifecycle events scheduled' });
+
+    res.json({
+      success: true,
+      communicationId,
+      message: 'Lifecycle events scheduled',
+    });
   } catch (err) {
     console.error('Send error:', err);
     res.status(500).json({ error: 'Failed to schedule send' });
@@ -21,7 +29,7 @@ router.post('/single', async (req, res) => {
 });
 
 // POST /api/send/batch
-router.post('/batch', async (req, res) => {
+router.post('/batch', async (req: Request, res: Response) => {
   try {
     const { callbackUrl, communications } = req.body as {
       callbackUrl: string;
@@ -34,20 +42,24 @@ router.post('/batch', async (req, res) => {
     };
 
     if (!callbackUrl || !communications?.length) {
-      return res.status(400).json({ error: 'callbackUrl and communications are required' });
+      return res.status(400).json({
+        error: 'callbackUrl and communications are required',
+      });
     }
 
     console.log(`📨 Received batch of ${communications.length} communications`);
 
-    // Schedule all in parallel (with small batching to avoid overwhelming queue)
     const BATCH_SIZE = 50;
+
     for (let i = 0; i < communications.length; i += BATCH_SIZE) {
       const batch = communications.slice(i, i + BATCH_SIZE);
+
       await Promise.all(
         batch.map((comm) =>
           scheduleLifecycle({ ...comm, callbackUrl })
         )
       );
+
       if (i + BATCH_SIZE < communications.length) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
