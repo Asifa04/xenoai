@@ -1,0 +1,126 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  phone      String?
+  city       String?
+  gender     String?
+  signupDate DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orders         Order[]
+  communications Communication[]
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  customerId  String
+  orderAmount Float
+  orderDate   DateTime
+  products    Json
+  createdAt   DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+
+model Segment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  rules       Json
+  aiPrompt    String?
+  size        Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  segmentId   String
+  channel     String
+  message     String
+  status      CampaignStatus @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  sentAt      DateTime?
+  completedAt DateTime?
+
+  segment        Segment            @relation(fields: [segmentId], references: [id])
+  communications Communication[]
+  analytics      CampaignAnalytics?
+}
+
+enum CampaignStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Communication {
+  id          String              @id @default(cuid())
+  campaignId  String
+  customerId  String
+  channel     String
+  message     String
+  status      CommunicationStatus @default(QUEUED)
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  readAt      DateTime?
+  clickedAt   DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime            @default(now())
+
+  campaign Campaign            @relation(fields: [campaignId], references: [id])
+  customer Customer            @relation(fields: [customerId], references: [id])
+  events   CommunicationEvent[]
+}
+
+enum CommunicationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  READ
+  CLICKED
+  FAILED
+}
+
+model CommunicationEvent {
+  id              String   @id @default(cuid())
+  communicationId String
+  event           String
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  communication Communication @relation(fields: [communicationId], references: [id])
+}
+
+model CampaignAnalytics {
+  id          String   @id @default(cuid())
+  campaignId  String   @unique
+  totalSent   Int      @default(0)
+  delivered   Int      @default(0)
+  failed      Int      @default(0)
+  opened      Int      @default(0)
+  read        Int      @default(0)
+  clicked     Int      @default(0)
+  conversions Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+}
