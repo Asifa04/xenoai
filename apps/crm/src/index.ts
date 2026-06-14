@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { migrate } from './db/migrate';
+import { seedCustomers } from './seed';
 
 import customersRouter from './api/customers/routes';
 import ordersRouter from './api/orders/routes';
@@ -33,6 +34,8 @@ app.use('/api/ai', aiRouter);
 async function start() {
   try {
     await migrate();
+    await seedCustomers();
+
     app.listen(PORT, () => {
       console.log(`🚀 CRM Service running on port ${PORT}`);
       startCallbackWorker();
